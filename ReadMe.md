@@ -28,16 +28,18 @@ After running the main 'usa.m' file a figure will pop up allowing the users to g
 
 The users can drag, rotate,etc. to get a better feel for the data in a visdual representation.
 
+## Context
+The program takes the gelocation data(latitude/longitude coordinates) of the USA states and converts them to cartesian coordinates in order to plot them on an xyz plot using the patch function.
+
+To convert the geolocation to cartesian the Lambert conformal conic projection was used. To read more about this go here: [Lambert Conbformal Conic](https://desktop.arcgis.com/en/arcmap/latest/map/projections/lambert-conformal-conic.htm#:~:text=The%20Lambert%20conformal%20conic%20map,west%20orientation%20at%20mid%2Dlatitudes.) 
+
+To give the illusion of 3d-ness each state is plotted on top of on another in the z-axis with an incrementation of 1 unit so that when viewed at certain angles the state appears to be 3 dimensional.
 
 ## Future
-The program takes the gelocation data of the USA states and converts them to cartesian coordinates in order to plot them on an xyz plot.
-
-As you can see the Alaska plot has some major inconsistencies, I have tried using alternitvae conic projections such as albers,mercator,equirectangular,etc. all to no avail. As of now I will eventually manually edit the plot to try and reduce as many incosistencies as possible.
-
-- [] Fix Alaska
-- [] Add a degree of transparancy (to 3D aspects) to allow base map to be more visible
-- [] Clean up the legend
-- [] Add start/end date buttons to allow the user to easily change the range of data visualized
+- [ ] Fix Alaska
+- [ ] Add a degree of transparancy (to 3D aspects) to allow base map to be more visible
+- [ ] Clean up the legend
+- [ ] Add start/end date buttons to allow the user to easily change the range of data visualized
 
 
 ## Contributing
