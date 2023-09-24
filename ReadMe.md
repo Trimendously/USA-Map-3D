@@ -7,6 +7,7 @@ The goal of this application is to allow users to visualize data that is divided
 - [Installation](#installation)
 - [Usage](#usage)
 - [Context](#context)
+- [Problems That Arose](#problems)
 - [Future](#future)
 - [Contributing](#contributing)
 - [License](#license)
@@ -35,9 +36,18 @@ To convert the geolocation to cartesian the Lambert conformal conic projection w
 
 To give the illusion of 3d-ness each state is plotted on top of on another in the z-axis with an incrementation of 1 unit so that when viewed at certain angles the state appears to be 3 dimensional.
 
+## Problems
+The 'patch' function in MATLAB is a great tool to fill in 2D polygons; however, it has become apparent to me that it is not a great tool to fill in discontinuous polygons.
+
+For several states this ended up being an issue, with Alaska being the most notably visible issue.
+
+To resolve this I eneded up manually dividing up the states that I dubbed 'problem states'.
+This meant I manually decided the number of veertices to include in each region and I would then plot the state using patch by individually using patch for each of the defined regions.
+
 ## Future
-- [ ] Fix Alaska
-- [ ] Add a degree of transparancy (to 3D aspects) to allow base map to be more visible
+- [ x ] Fix Alaska
+- [  ] Continue getting rid of stray edges from discontinuous land masses
+- ~~ Add a degree of transparancy (to 3D aspects) to allow base map to be more visible~~
 - [ ] Clean up the legend
 - [ ] Add start/end date buttons to allow the user to easily change the range of data visualized
 

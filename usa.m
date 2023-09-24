@@ -1,9 +1,5 @@
-% Defines the start and end dates to read from the csv
-startDate = datetime('01-Jan-00', 'Format', 'dd-MMM-yy', 'PivotYear', 2000);
-endDate = datetime('31-Dec-23', 'Format', 'dd-MMM-yy', 'PivotYear', 2000);
-
 % Via the banklist.csv file checks the count per state of failed banks
-stateCounts = dataCompiler(startDate,endDate);
+stateCounts = dataCompiler();
 
 % Gets the screen size
 screenSize = get(0, 'ScreenSize');
@@ -29,7 +25,7 @@ states = shaperead('usastatelo', 'UseGeoCoords', true, 'BoundingBox', [-180, -90
 % Geolocation to cartesian
 [x,y] = lambert(states);
 
-
+% My colormap
 distinct_colors = [
     0.620, 0.125, 0.294;  % Alabama (Crimson)
     0.086, 0.317, 0.482;  % Alaska (Dark Blue)
@@ -83,47 +79,55 @@ distinct_colors = [
     0.239, 0.275, 0.435;  % Wyoming (Dark Blue)
     0.737, 0.737, 0.737;  % Washington, D.C. (Light Gray)
 ];
-
-% Creates a color map based on the number of states
 colorMap = colormap(distinct_colors);
-lighterMap = brighten(colorcube,0.7);
-colorMapLighter = colormap(lighterMap);
 
 % Creates an empty cell array to store legend labels
 legendLabels = cell(numel(states), 1);
 
-% Plots each state individually 
-for i = 1:numel(states)
-    x_state = x{i};
-    y_state = y{i};
-    
-    % Initializes the logical indices for valid coordinates (excludes Nan)
-    valid_coords = ~isnan(x_state) & ~isnan(y_state);
-    nan_coords = isnan(x_state) | isnan(y_state);
 
-    x_coord = x_state(~nan_coords);
-    y_coord = y_state(~nan_coords);
-    z_coord = ones(size(x_state(valid_coords)));
+% Plots each state individually 
+for i = 1:numel(states)   
+    % Initializes the logical indices for valid coordinates (excludes Nan)
+    valid_coords = ~isnan(x{i}) & ~isnan(y{i});
+    nan_coords = isnan(x{i}) | isnan(y{i});
+
+    x_coord = x{i}(~nan_coords);
+    y_coord = y{i}(~nan_coords);
+    z_coord = ones(size(x{i}(valid_coords)));
     
-    % Plots the 3d layers for each state    
-    %fprintf('State: %s', states(i).Name);  
-    if isKey(stateCounts, states(i).Name)
-        %fprintf('- State Count: %d\n', stateCounts(states(i).Name));
+    if isKey(stateCounts, states(i).Name) % Frequency > 0
+        z_height = stateCounts(states(i).Name);
         displayName = [states(i).Name, ' (Count: ', num2str(stateCounts(states(i).Name)), ')'];
-        % Added a plus 1 if we decide to keep the base map
-        for j = 1:(stateCounts(states(i).Name)+1)
-            p = patch(ax1, x_coord, y_coord, j*z_coord, colorMap(i, :), 'DisplayName', displayName,'EdgeColor', 'w');  
-            if j ~= 1
-                alpha(p, 1);  % Sets transparency
-            end
-        end
-    else
-        %fprintf('- State Count: %d\n', 0);
+    else  % Frequency = 0
+        z_height = 0;
         displayName = [states(i).Name, ' (Count: ', num2str(0), ')'];
-        % If the base map is kept
-        patch(ax1, x_coord, y_coord, z_coord, colorMap(i, :), 'DisplayName', displayName,'EdgeColor', 'w');       
     end
-    
+
+    % Plots the 3d layers for each state (j is the frequency of each state) 
+    for j = 0:z_height
+        if j == 0
+            faceColor = [0, 0, 0]; % 3D map color
+        else
+            faceColor = colorMap(i, :); % Base map color
+        end
+
+        if strcmp(states(i).Name, 'Alaska')
+            % Manually divided the regions to avoid messed up edges between disconnected pieces
+            regionDividers = [1, 3174, 3380,3461,3575,4561,4907,4967];
+
+            % Iterates over each region and plot the patches
+            for region = 1:length(regionDividers) - 1
+                s = regionDividers(region); % Start index
+                f = regionDividers(region + 1) - 1; % End index
+            
+                % Plots the patch for the current region
+                patch(ax1, x_coord(s:f), y_coord(s:f), j*z_coord(s:f), faceColor,'DisplayName', displayName, 'EdgeColor', 'w');
+            end             
+        else
+            patch(ax1, x_coord, y_coord, j*z_coord, faceColor, 'DisplayName', displayName,'EdgeColor', 'w');  % Plots the state(~Alaska)
+        end
+    end
+
     % Store the legend label for this state
     legendLabels{i} = displayName;
 end
@@ -156,16 +160,8 @@ for i = 1:numel(legendLabels)
     annotation('textbox', [0.8, text_y_position, 0.2, 0.05], 'String', legendLabels{i}, 'EdgeColor', 'none', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 end
 
-% Turns geolocation into cartesian coordinates
-function [x,y] = lambert(states)
-    % Lambert Conformal Conic projection parameters for USA
-    standardParallel1 = 33;
-    standardParallel2 = 45;
-    centralMeridian = -96;
-    originLat = 39;
-    
-    % Creates a Lambert Conformal Conic projection structure
-    proj = defaultm('lambertstd');
+function proj = createProjection(projectionType,standardParallel1, standardParallel2, centralMeridian, originLat)
+    proj = defaultm(projectionType);
     proj.origin = [originLat, 0];
     proj.mapparallels = [standardParallel1, standardParallel2];
     proj.nparallels = 2;
@@ -174,92 +170,20 @@ function [x,y] = lambert(states)
     proj.scalefactor = 1;
     proj.falseeasting = 0;
     proj.central_meridian = centralMeridian;
-    
+end
+
+% Turns geolocation into cartesian coordinates
+function [x,y] = lambert(states)
+    % Lambert Conformal Conic projection parameters for USA
+    proj = createProjection('lambertstd',33, 45, -96, 39);
+
     % Initializes arrays to store Cartesian coordinates for each state
     x = cell(numel(states), 1);
     y = cell(numel(states), 1);
     
     % Converts the latitudes and longitudes to Cartesian coordinates for each state
     for i = 1:numel(states)
-        if strcmp(states(i).Name, 'Alaska')
-            % Handle Alaska separately with its own Lambert projection
-            [x{i}, y{i}] = lambertAlaska(states(i));
-        else
             [x{i}, y{i}] = projfwd(proj, states(i).Lat, states(i).Lon);
-        end
-    end
-end
-
-% Lambert projection for Alaska
-function [x, y] = lambertAlaska(state)
-    % Lambert Conformal Conic projection parameters for Alaska
-    standardParallel1 = 55;
-    standardParallel2 = 65;
-    centralMeridian = -154;
-    originLat = 50;
-    
-    % Creates a Lambert Conformal Conic projection structure for Alaska
-    proj = defaultm('lambertstd');
-    proj.origin = [originLat, 0];
-    proj.mapparallels = [standardParallel1, standardParallel2];
-    proj.nparallels = 2;
-    proj.falseeasting = 0;
-    proj.falsenorthing = 0;
-    proj.scalefactor = 1;
-    proj.falseeasting = 0;
-    proj.central_meridian = centralMeridian;
-    
-    % Apply the projection to Alaska's coordinates
-    [x, y] = projfwd(proj, state.Lat, state.Lon);
-end
-
-% Gets the amount of unique occurence of each state
-function stateCounts = dataCompiler(startDate,endDate)
-    data = readtable('banklist.csv');
-
-    % Creates a map to convert state acronyms to full names for all 50 states
-    stateAcronymToFull = containers.Map( ...
-        {'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', ...
-         'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', ...
-         'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', ...
-         'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', ...
-         'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'}, ...
-        {'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', ...
-         'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', ...
-         'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', ...
-         'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', ...
-         'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', ...
-         'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', ...
-         'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'});
-
-    numRows = size(data, 1);
-    
-    % Initializes a map to store the state counts
-    stateCounts = containers.Map('KeyType', 'char', 'ValueType', 'double');
-    
-    for i = 1:numRows     
-        % Adjusts the datetime object to have a pivot year of 2000
-        currentDate = data.ClosingDate_(i) + years(2000);
         
-        isWithinRange =  (currentDate >= startDate) & (currentDate <= endDate);
-
-        currentStateAcronym = strtrim(data.State_{i});
-
-        if isWithinRange
-           % Checks if the state acronym is in the dictionary
-            if isKey(stateAcronymToFull, currentStateAcronym)
-                currentState = stateAcronymToFull(currentStateAcronym);
-
-                % Update the count for the current state
-                if isKey(stateCounts, currentState)
-                    stateCounts(currentState) = stateCounts(currentState) + 1;
-                else
-                    stateCounts(currentState) = 1;
-                end 
-            else
-                disp(['State acronym not found in the dictionary: ' currentStateAcronym]);
-            end
-        end   
     end
 end
-
