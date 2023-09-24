@@ -1,3 +1,4 @@
+
 % Via the banklist.csv file checks the count per state of failed banks
 stateCounts = dataCompiler();
 
@@ -146,18 +147,31 @@ ax.YAxis.Visible = 'off';
 axes(ax2);
 axis off;  % Hides axes in the legend section
 
-% Displays a custom legend using annotations
-annotation('textbox', [0.75, 0.9, 0.2, 0.05], 'String', 'Legend', 'EdgeColor', 'none', 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+
+
+
+% Define the position and dimensions for the legend box
+legend_box_x = 0.79;
+legend_box_y = 0.92 - (numel(legendLabels)+1) * 0.015;
+legend_box_width = 0.13;
+legend_box_height = 0.06 + (numel(legendLabels)) * 0.015;
+
+% Lgend Title
+annotation('textbox', [legend_box_x, 0.9, legend_box_width, 0.05], 'String', 'Legend', 'EdgeColor', 'none', 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+
+% Creates a rectangle annotation for the legend box
+annotation('rectangle', [legend_box_x, legend_box_y, legend_box_width, legend_box_height], 'EdgeColor', 'k', 'LineWidth', 1.5);
+
 
 for i = 1:numel(legendLabels)
     text_y_position = 0.9 - i* 0.015;  % Adjusted y_position for single-spaced vertical layout
     rectangle_y_position = 0.92 - i * 0.015;
 
     % Create a small square with the same color
-    annotation('rectangle', [0.786718750000007, rectangle_y_position, 0.0113281249999948, 0.0109314456035766], 'Color', colorMap(i,:), 'FaceColor', colorMap(i,:));
+    annotation('rectangle', [legend_box_x + legend_box_width/2 - 0.034, rectangle_y_position, 0.01, 0.011], 'Color', colorMap(i,:), 'FaceColor', colorMap(i,:));
     
     % Create the legend entry text
-    annotation('textbox', [0.8, text_y_position, 0.2, 0.05], 'String', legendLabels{i}, 'EdgeColor', 'none', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
+    annotation('textbox', [legend_box_x + legend_box_width/2 - 0.02, text_y_position, legend_box_width, 0.05], 'String', legendLabels{i}, 'EdgeColor', 'none', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
 end
 
 function proj = createProjection(projectionType,standardParallel1, standardParallel2, centralMeridian, originLat)
