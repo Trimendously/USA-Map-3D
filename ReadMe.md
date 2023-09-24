@@ -46,8 +46,7 @@ This meant I manually decided the number of veertices to include in each region 
 
 ## Future
 - [ x ] Fix Alaska
-- [  ] Continue getting rid of stray edges from discontinuous land masses
-- ~~ Add a degree of transparancy (to 3D aspects) to allow base map to be more visible~~
+- [ ] Continue getting rid of stray edges from discontinuous land masses
 - [ ] Clean up the legend
 - [ ] Add start/end date buttons to allow the user to easily change the range of data visualized
 
