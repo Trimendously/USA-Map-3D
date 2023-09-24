@@ -45,7 +45,7 @@ To resolve this I eneded up manually dividing up the states that I dubbed 'probl
 This meant I manually decided the number of veertices to include in each region and I would then plot the state using patch by individually using patch for each of the defined regions.
 
 ## Future
-- [ x ] Fix Alaska
+- [x] Fix Alaska
 - [ ] Continue getting rid of stray edges from discontinuous land masses
 - [ ] Clean up the legend
 - [ ] Add start/end date buttons to allow the user to easily change the range of data visualized
