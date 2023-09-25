@@ -41,11 +41,11 @@ The 'patch' function in MATLAB is a great tool to fill in 2D polygons; however, 
 
 For several states this ended up being an issue, with Alaska being the most notably visible issue.
 
-To resolve this I eneded up manually dividing up the states that I dubbed 'problem states'.
-This meant I manually decided the number of veertices to include in each region and I would then plot the state using patch by individually using patch for each of the defined regions.
+To resolve this I eneded up manually dividing up the states that have discontinuous land masses.
+This meant I manually decided the chunks of each states and then would plot a state by seperate plotting each of its chunks.
 
 ## Future
-- [ ] Continue getting rid of stray edges from discontinuous land masses
+- [ ] Add/create geographical shapes for U.S. territories(Puerto Rico, Guaam,etc.)
 
 
 ## Contributing
