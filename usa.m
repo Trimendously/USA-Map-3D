@@ -1,7 +1,3 @@
-
-% Via the banklist.csv file checks the count per state of failed banks
-stateCounts = dataCompiler();
-
 % Gets the screen size
 screenSize = get(0, 'ScreenSize');
 
@@ -14,17 +10,15 @@ set(figHandle, 'Name', 'USA Bank Failures');
 ax1 = subplot(1, 2, 1);  % Left section for the plot
 ax2 = subplot(1, 2, 2);  % Right section for the legend
 
-% Plots the states in the left section
-plotBackground = [0, 0, 0]; % RGB values
-axes(ax1);
-ax1.Color = plotBackground;
-hold on;
 
 % Reads state boundaries data
 states = shaperead('usastatelo', 'UseGeoCoords', true, 'BoundingBox', [-180, -90; 180, 90]);
 
 % Geolocation to cartesian
 [x,y] = lambert(states);
+
+% Creates an empty cell array to store legend labels
+legendLabels = cell(numel(states), 1);
 
 % My colormap
 distinct_colors = [
@@ -82,9 +76,22 @@ distinct_colors = [
 ];
 colorMap = colormap(distinct_colors);
 
-% Creates an empty cell array to store legend labels
-legendLabels = cell(numel(states), 1);
+% USA Plot Properties
+plotBackground = [0, 0, 0]; % RGB values
+axes(ax1);
+ax1.Color = plotBackground;
+hold on;
+xlabel('X');
+ylabel('Y');
+zlabel('Bank Failures');
+title('USA Bank Failures');
+rotate3d on;
+ax = gca;  % Get the current axes
+ax.XAxis.Visible = 'off';
+ax.YAxis.Visible = 'off';
 
+% Via the banklist.csv file checks the count per state of failed banks
+stateCounts = dataCompiler();
 
 % Plots each state individually 
 for i = 1:numel(states)   
@@ -104,28 +111,39 @@ for i = 1:numel(states)
         displayName = [states(i).Name, ' (Count: ', num2str(0), ')'];
     end
 
-    % Plots the 3d layers for each state (j is the frequency of each state) 
+    % Manually divided the regions with discontinuous land mass
+    if strcmp(states(i).Name, 'Alaska')
+        regionDividers = [1, 3174, 3228,3380,3461,3575,3635,3866,3950,4022,4152,4269,4423,4561,4561,4646,4907,length(x_coord)];    
+    elseif strcmp(states(i).Name, 'Hawaii')
+        regionDividers = [1,54,88,109,161,length(x_coord)]; 
+    elseif strcmp(states(i).Name, 'Maryland')
+        regionDividers = [1,358];
+    elseif strcmp(states(i).Name, 'Massachusetts')
+        regionDividers = [1,103,length(x_coord)];
+    elseif strcmp(states(i).Name, 'Michigan')   
+        regionDividers = [1, 209,length(x_coord)]; 
+    elseif strcmp(states(i).Name, 'New York')
+        regionDividers = [1,187,length(x_coord)];
+    elseif strcmp(states(i).Name, 'Virginia')
+        regionDividers = [1,315,length(x_coord)];
+    else
+        regionDividers = [1, length(x_coord)];
+    end
+
+    % Plots the 3d layers for each state (j is the frequency(height) of each state) 
     for j = 0:z_height
         if j == 0
             faceColor = [0, 0, 0]; % 3D map color
         else
             faceColor = colorMap(i, :); % Base map color
-        end
-
-        if strcmp(states(i).Name, 'Alaska')
-            % Manually divided the regions to avoid messed up edges between disconnected pieces
-            regionDividers = [1, 3174, 3380,3461,3575,4561,4907,4967];
-
-            % Iterates over each region and plot the patches
-            for region = 1:length(regionDividers) - 1
-                s = regionDividers(region); % Start index
-                f = regionDividers(region + 1) - 1; % End index
-            
-                % Plots the patch for the current region
-                patch(ax1, x_coord(s:f), y_coord(s:f), j*z_coord(s:f), faceColor,'DisplayName', displayName, 'EdgeColor', 'w');
-            end             
-        else
-            patch(ax1, x_coord, y_coord, j*z_coord, faceColor, 'DisplayName', displayName,'EdgeColor', 'w');  % Plots the state(~Alaska)
+        end 
+        % Iterates over each region and plot the patches
+        for region = 1:length(regionDividers) - 1
+            s = regionDividers(region); % Start index
+            f = regionDividers(region + 1) - 1; % End index
+        
+            % Plots the patch for the current region
+            patch(ax1, x_coord(s:f), y_coord(s:f), j*z_coord(s:f), faceColor,'DisplayName', displayName, 'EdgeColor', 'w');
         end
     end
 
@@ -133,63 +151,49 @@ for i = 1:numel(states)
     legendLabels{i} = displayName;
 end
 
-% Plot Properties
-xlabel('X');
-ylabel('Y');
-zlabel('Bank Failures');
-title('USA Bank Failures');
-rotate3d on;
-ax = gca;  % Get the current axes
-ax.XAxis.Visible = 'off';
-ax.YAxis.Visible = 'off';
+createLegend(ax2,legendLabels,colorMap); % Creates the legend
 
-% Customizes the legend in the right section
-axes(ax2);
-axis off;  % Hides axes in the legend section
-
-
-
-
-% Define the position and dimensions for the legend box
-legend_box_x = 0.79;
-legend_box_y = 0.92 - (numel(legendLabels)+1) * 0.015;
-legend_box_width = 0.13;
-legend_box_height = 0.06 + (numel(legendLabels)) * 0.015;
-
-% Lgend Title
-annotation('textbox', [legend_box_x, 0.9, legend_box_width, 0.05], 'String', 'Legend', 'EdgeColor', 'none', 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
-
-% Creates a rectangle annotation for the legend box
-annotation('rectangle', [legend_box_x, legend_box_y, legend_box_width, legend_box_height], 'EdgeColor', 'k', 'LineWidth', 1.5);
-
-
-for i = 1:numel(legendLabels)
-    text_y_position = 0.9 - i* 0.015;  % Adjusted y_position for single-spaced vertical layout
-    rectangle_y_position = 0.92 - i * 0.015;
-
-    % Create a small square with the same color
-    annotation('rectangle', [legend_box_x + legend_box_width/2 - 0.034, rectangle_y_position, 0.01, 0.011], 'Color', colorMap(i,:), 'FaceColor', colorMap(i,:));
+% Creates a legend in the right section
+function createLegend(ax2,legendLabels,colorMap)
+    axes(ax2);
+    axis off;  % Hides axes in the legend section
+    y_max = 1.23 * 0.765;
+    % Define the position and dimensions for the legend box
+    legend_box_x = 0.79;
+    legend_box_y = y_max - (numel(legendLabels)+1) * 0.015;
+    legend_box_width = 0.13;
+    legend_box_height = 0.06 + (numel(legendLabels)) * 0.015;
     
-    % Create the legend entry text
-    annotation('textbox', [legend_box_x + legend_box_width/2 - 0.02, text_y_position, legend_box_width, 0.05], 'String', legendLabels{i}, 'EdgeColor', 'none', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
+    % Legend Title
+    annotation('textbox', [legend_box_x, (y_max-0.02), legend_box_width, 0.05], 'String', 'Legend', 'EdgeColor', 'none', 'FontSize', 12, 'FontWeight', 'bold', 'HorizontalAlignment', 'center');
+    
+    % Creates a rectangle annotation for the legend box
+    annotation('rectangle', [legend_box_x, legend_box_y, legend_box_width, legend_box_height], 'EdgeColor', 'k', 'LineWidth', 1.5);
+      
+    for i = 1:numel(legendLabels)
+        text_y_position = (y_max-0.02) - i* 0.015;  % Adjusted y_position for single-spaced vertical layout
+        rectangle_y_position = y_max - i * 0.015;
+    
+        % Create a small square with the same color
+        annotation('rectangle', [legend_box_x + legend_box_width/2 - 0.034, rectangle_y_position, 0.01, 0.011], 'Color', colorMap(i,:), 'FaceColor', colorMap(i,:));
+        
+        % Create the legend entry text
+        annotation('textbox', [legend_box_x + legend_box_width/2 - 0.02, text_y_position, legend_box_width, 0.05], 'String', legendLabels{i}, 'EdgeColor', 'none', 'FontSize', 10, 'FontWeight', 'bold', 'HorizontalAlignment', 'left', 'VerticalAlignment', 'middle');
+    end
 end
 
-function proj = createProjection(projectionType,standardParallel1, standardParallel2, centralMeridian, originLat)
-    proj = defaultm(projectionType);
-    proj.origin = [originLat, 0];
-    proj.mapparallels = [standardParallel1, standardParallel2];
+% Turns geolocation into cartesian coordinates
+% Lambert Conformal Conic projection parameters for USA  
+function [x,y] = lambert(states)
+    proj = defaultm('lambertstd');
+    proj.origin = [39, 0];
+    proj.mapparallels = [33, 45];
     proj.nparallels = 2;
     proj.falseeasting = 0;
     proj.falsenorthing = 0;
     proj.scalefactor = 1;
     proj.falseeasting = 0;
-    proj.central_meridian = centralMeridian;
-end
-
-% Turns geolocation into cartesian coordinates
-function [x,y] = lambert(states)
-    % Lambert Conformal Conic projection parameters for USA
-    proj = createProjection('lambertstd',33, 45, -96, 39);
+    proj.central_meridian = -96;
 
     % Initializes arrays to store Cartesian coordinates for each state
     x = cell(numel(states), 1);
@@ -197,7 +201,6 @@ function [x,y] = lambert(states)
     
     % Converts the latitudes and longitudes to Cartesian coordinates for each state
     for i = 1:numel(states)
-            [x{i}, y{i}] = projfwd(proj, states(i).Lat, states(i).Lon);
-        
+            [x{i}, y{i}] = projfwd(proj, states(i).Lat, states(i).Lon);      
     end
 end
